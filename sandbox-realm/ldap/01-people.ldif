@@ -1,0 +1,58 @@
+dn: dc=acme,dc=test
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+dc: acme
+o: Acme Test Corp
+
+dn: ou=people,dc=acme,dc=test
+objectClass: organizationalUnit
+ou: people
+
+dn: uid=alice.ldap,ou=people,dc=acme,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: alice.ldap
+cn: Alice LDAP
+sn: LDAP
+givenName: Alice
+mail: alice.ldap@acme.test
+userPassword: ldap-pass-not-for-production
+
+dn: uid=peter.newhire,ou=people,dc=acme,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: peter.newhire
+cn: Peter Newhire
+sn: Newhire
+givenName: Peter
+mail: peter.newhire@acme.test
+userPassword: ldap-pass-not-for-production
+
+dn: uid=quinn.veteran,ou=people,dc=acme,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: quinn.veteran
+cn: Quinn Veteran
+sn: Veteran
+givenName: Quinn
+mail: quinn.veteran@acme.test
+userPassword: ldap-pass-not-for-production
+
+dn: uid=rachel.contractor,ou=people,dc=acme,dc=test
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: rachel.contractor
+cn: Rachel Contractor
+sn: Contractor
+givenName: Rachel
+mail: rachel.contractor@acme.test
+userPassword: ldap-pass-not-for-production

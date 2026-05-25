@@ -1,0 +1,356 @@
+# Appendix A — Environment Setup
+
+> **Appendix only — not part of the L1 support track.** The 1-day L1 curriculum runs against a trainer-provisioned cloud Keycloak. If you are a learner on that course, start at [`module-0-sandbox-access`](../module-0-sandbox-access/) instead. This appendix is for trainers preparing the cloud sandbox, or for self-paced learners who need to spin up their own Keycloak locally.
+
+This lab addresses the need for a consistent, reproducible Keycloak runtime so that later labs can focus on configuration and protocol mechanics without environment drift. By the end, you will have demonstrated that you can start a local Keycloak instance, create an initial admin account, and verify reachability via HTTP.
+
+---
+
+## Prerequisites
+
+Before starting this lab, confirm:
+
+- [ ] Docker Desktop is installed and running
+- [ ] Node.js and npm are installed (`node --version` and `npm --version` return versions)
+- [ ] Port 8080 is free on your workstation
+
+This is the first lab; there is no prior lab to complete.
+
+---
+
+## Background
+
+### Installation options
+
+Keycloak can be installed in several ways:
+
+| Method | Best for | Prerequisites |
+|---|---|---|
+| Docker container | Quick local development | Docker Desktop |
+| OpenJDK | Long-running local dev or custom Java tuning | OpenJDK |
+| Kubernetes / Operator | Production or team environments | K8s cluster |
+
+This lab covers Docker (recommended) and OpenJDK. Docker isolates dependencies and makes cleanup trivial; OpenJDK gives you full control over JVM flags and persistence.
+
+> **Note:** The commands in this lab start Keycloak in `start-dev` mode. This disables HTTPS enforcement, uses an embedded H2 database, and relaxes other production safeguards. Never use `start-dev` in production.
+
+---
+
+## Task 1 — Verify Node.js and npm
+
+> Estimated time: 2–3 min | Tools: terminal
+
+<details>
+<summary>Hint — where to look</summary>
+
+Check your operating system's package manager or the Node.js website if the commands are missing. The labs expect a current LTS release.
+
+</details>
+
+<details>
+<summary>Solution — step-by-step walkthrough</summary>
+
+1. Open a terminal and run:
+
+   ```bash
+   node --version
+   npm --version
+   ```
+
+2. If either command is not found, download the Windows installer from [Node.js v24.14.1 (Windows x64)](https://nodejs.org/dist/v24.14.1/node-v24.14.1-x64.msi) and run it.
+3. Re-open your terminal and repeat the version checks.
+
+> **Note:** No cleanup needed; this is a read-only verification.
+
+</details>
+
+---
+
+## Task 2 — Launch Keycloak with Docker
+
+> Estimated time: 5–7 min | Tools: terminal / Docker
+
+<details>
+<summary>Hint — bootstrap credentials</summary>
+
+Keycloak does not create a default admin account for security reasons. The container needs environment variables to seed the first admin user on startup.
+
+</details>
+
+<details>
+<summary>Hint — port binding</summary>
+
+Binding to `127.0.0.1:8080` limits exposure to your local machine. If another service already uses 8080, either free the port or map to a different host port.
+
+</details>
+
+<details>
+<summary>Solution — step-by-step walkthrough</summary>
+
+1. Run the container:
+
+   - Linux / macOS:
+
+     ```bash
+     docker run --name keycloak -p 127.0.0.1:8080:8080 \
+       -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+       -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+       quay.io/keycloak/keycloak:26.5.0 \
+       start-dev
+     ```
+
+   - Windows (PowerShell):
+
+     ```powershell
+     docker run --name keycloak -p 127.0.0.1:8080:8080 `
+       -e KC_BOOTSTRAP_ADMIN_USERNAME=admin `
+       -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin `
+       quay.io/keycloak/keycloak:26.5.0 `
+       start-dev
+     ```
+
+2. Wait for the log line confirming the server started.
+3. Open `http://localhost:8080` in a browser.
+4. Click **Administration Console** and log in with:
+   - Username: `admin`
+   - Password: `admin`
+
+> **Note:** To stop and remove the container later:
+> - Linux / macOS: `docker stop keycloak && docker rm keycloak`
+> - Windows: `docker stop keycloak; docker rm keycloak`
+
+</details>
+
+---
+
+## Task 3 — (Optional) Launch Keycloak with OpenJDK
+
+> Estimated time: 10–15 min | Tools: terminal
+
+<details>
+<summary>Hint — environment variables</summary>
+
+Keycloak reads `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD` from the environment on first startup to create the admin account.
+
+</details>
+
+<details>
+<summary>Solution — step-by-step walkthrough</summary>
+
+1. Install OpenJDK:
+   - **Windows / macOS:** Download from [Adoptium](https://adoptium.net/)
+   - **Fedora:** `sudo dnf install java-latest-openjdk`
+   - **Ubuntu:** search for current OpenJDK packages in your distribution's repository
+2. Verify Java:
+
+   ```bash
+   java -version
+   ```
+
+3. Download and extract Keycloak, then set `KC_HOME` to the extracted directory.
+4. Set bootstrap credentials:
+   - Linux / macOS:
+
+     ```bash
+     export KC_BOOTSTRAP_ADMIN_USERNAME=admin
+     export KC_BOOTSTRAP_ADMIN_PASSWORD=change_me
+     ```
+
+   - Windows:
+
+     ```cmd
+     set KC_BOOTSTRAP_ADMIN_USERNAME=admin && set KC_BOOTSTRAP_ADMIN_PASSWORD=change_me
+     ```
+
+5. Start Keycloak:
+   - Linux / macOS:
+
+     ```bash
+     cd $KC_HOME
+     bin/kc.sh start-dev
+     ```
+
+   - Windows:
+
+     ```cmd
+     cd %KC_HOME%
+     bin\kc.bat start-dev
+     ```
+
+6. Open `http://localhost:8080` and log into the admin console with the credentials you set.
+
+> **Note:** Use a strong password in production and consider enabling two-factor authentication for the admin account.
+
+</details>
+
+---
+
+## Task 4 — Configure the Admin CLI alias
+
+> Estimated time: 3–5 min | Tools: terminal
+
+Two Docker-based approaches are shown below. Pick one:
+
+| Approach | When to use |
+|---|---|
+| **A. `docker exec` into the running container** | Recommended. Reuses the `keycloak` container from Task 2, no networking quirks, token persists inside the container. |
+| **B. Transient `docker run` with a host volume** | Use when the Keycloak server runs elsewhere (remote host, different container, bare-metal) and you only need the CLI locally. |
+
+<details>
+<summary>Hint — volume mount</summary>
+
+The CLI stores authentication tokens in a local directory. For Approach B, mount that directory into the container so the token persists across invocations. For Approach A, the token stays inside the long-running container's filesystem and persists automatically until the container is removed.
+
+</details>
+
+<details>
+<summary>Solution A — `docker exec` against the running Keycloak container</summary>
+
+This approach assumes the `keycloak` container from Task 2 is running. Because the CLI executes inside the same container as the server, it talks to `http://localhost:8080` regardless of host OS.
+
+**Linux / macOS:**
+
+1. Define the alias:
+
+   ```bash
+   alias kcadm="docker exec -i keycloak /opt/keycloak/bin/kcadm.sh"
+   ```
+
+2. Authenticate:
+
+   ```bash
+   kcadm config credentials --server http://localhost:8080 --realm master --user admin --password admin
+   ```
+
+3. Verify:
+
+   ```bash
+   kcadm get realms
+   ```
+
+**Windows (PowerShell):**
+
+1. Define a PowerShell function:
+
+   ```powershell
+   function kcadm {
+       docker exec -i keycloak /opt/keycloak/bin/kcadm.sh @args
+   }
+   ```
+
+2. Authenticate:
+
+   ```powershell
+   kcadm config credentials --server http://localhost:8080 --realm master --user admin --password admin
+   ```
+
+3. Verify:
+
+   ```powershell
+   kcadm get realms
+   ```
+
+> **Note:** The stored token lives in the container at `/opt/keycloak/.keycloak/kcadm.config`. It is lost when the container is removed (`docker rm keycloak`); re-run `kcadm config credentials` after recreating the container.
+
+</details>
+
+<details>
+<summary>Solution B — Transient `docker run` with a host volume</summary>
+
+**Linux / macOS:**
+
+1. Create a directory for CLI state:
+
+   ```bash
+   mkdir -p $(echo $HOME)/.acme/.keycloak
+   ```
+
+2. Define the alias:
+
+   ```bash
+   alias kcadm="docker run --net=host -i --user=1000:1000 --rm -v $(echo $HOME)/.acme/.keycloak:/opt/keycloak/.keycloak:z --entrypoint /opt/keycloak/bin/kcadm.sh quay.io/keycloak/keycloak:26.5.0"
+   ```
+
+3. Authenticate:
+
+   ```bash
+   kcadm config credentials --server http://localhost:8080 --realm master --user admin --password admin
+   ```
+
+4. Verify:
+
+   ```bash
+   kcadm get realms
+   ```
+
+> **Note:** Add the alias to your shell profile (e.g., `~/.bashrc`) if you want it available in new terminals.
+
+---
+
+**Windows (PowerShell):**
+
+1. Create a directory for CLI state:
+
+   ```powershell
+   New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.acme\.keycloak"
+   ```
+
+2. Define a PowerShell function:
+
+   ```powershell
+   function kcadm {
+       docker run --rm -i `
+         -v "$env:USERPROFILE\.acme\.keycloak:/opt/keycloak/.keycloak" `
+         --entrypoint /opt/keycloak/bin/kcadm.sh `
+         quay.io/keycloak/keycloak:26.5.0 @args
+   }
+   ```
+
+3. Authenticate:
+
+   ```powershell
+   kcadm config credentials --server http://host.docker.internal:8080 --realm master --user admin --password admin
+   ```
+
+   > **Note:** On Windows, Docker Desktop routes host-to-container traffic via `host.docker.internal`, not `localhost`.
+
+4. Verify:
+
+   ```powershell
+   kcadm get realms
+   ```
+
+> **Note:** To make the function available in new terminals, add it to your PowerShell profile: `notepad $PROFILE`.
+
+</details>
+
+---
+
+## Lab Checkpoint
+
+Verify that all of the following are true before marking this lab complete:
+
+- [ ] `node --version` and `npm --version` return version strings
+- [ ] Keycloak is running and reachable at `http://localhost:8080`
+- [ ] The admin console login succeeds with the provided credentials
+- [ ] (Optional) The `kcadm` alias returns realm data without errors
+
+```bash
+# Quick health check (local Docker — Linux / macOS)
+curl -s http://localhost:8080 | grep -i keycloak
+```
+
+```powershell
+# Quick health check (local Docker — Windows PowerShell)
+(Invoke-WebRequest -Uri http://localhost:8080).Content | Select-String keycloak
+```
+
+---
+
+## Going Further
+
+These extension tasks have no hints or solutions. They are for learners who want to explore beyond the lab's core objectives.
+
+- Run Keycloak with an external PostgreSQL container instead of the embedded H2 database, and verify that realm data persists across container restarts.
+- Start Keycloak in production mode (`start` instead of `start-dev`) with a self-signed TLS certificate and observe which configuration options become mandatory.
+- Read the [Keycloak Server Administration Guide — Installing Keycloak](https://www.keycloak.org/guides#server) to compare bare-metal, container, and Kubernetes installation trade-offs.

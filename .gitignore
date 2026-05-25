@@ -1,0 +1,23 @@
+# Environment files (commit only .env.example)
+.env
+.env.local
+.env.*.local
+
+# Node / demo-app
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Local Keycloak / Docker data
+data/
+*.log
