@@ -1,5 +1,4 @@
-# Environment files (commit only .env.example)
-.env
+# Environment files
 .env.local
 .env.*.local
 
