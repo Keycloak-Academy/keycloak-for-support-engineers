@@ -50,29 +50,12 @@ The sandbox realm has brute-force protection enabled with a low `failureFactor` 
 **Ticket #4827:** `bob@acme.test` reports he has been locked out since this morning. "I tried my password a bunch of times because I wasn't sure if I'd changed it, and now it just says my account is disabled." He needs access by end of day for a customer demo.
 
 <details>
-<summary>Hint — where the lockout state lives</summary>
-
-A lockout shows up in two places: the User enabled state on the user's Details tab, and the realm-wide brute-force settings page that controls the policy. Decide whether you are toggling the user back on, or clearing the lockout that the policy applied — they look similar but reach different controls.
-
-</details>
-
-<details>
-<summary>Hint — what to verify before closing the ticket</summary>
-
-Bob's correct password is the same as every other sandbox user's. You can test the fix by attempting a login through the account console at the realm's root URL.
-
-</details>
-
-<details>
 <summary>Solution — step-by-step walkthrough</summary>
 
 1. Left nav → **Users** → search `bob`. Open `bob.bruteforce`.
 2. On the Details tab, notice that **User enabled** is `Off`. This is the seeded state — the account was manually disabled to simulate a lockout scenario.
 3. Toggle **User enabled** to `On` and click **Save**.
-4. (Second scenario — brute-force lockout, different control.) Left nav → **Realm settings** → **Security defenses** tab → **Brute force detection**. Click **Unlock users** to clear policy-applied lockouts realm-wide. Use this when the account's **User enabled** toggle is still `On` but the user sees "temporarily disabled" — meaning brute-force protection tripped, not a manual disable.
 5. Verify: open a private browser window, go to http://localhost:8080/realms/support-sandbox/account/, and log in as `bob.bruteforce` with password `Password123!`. The login should succeed.
-
-> **Note:** The **User enabled** toggle and the **Unlock users** button address two distinct conditions. A manual disable (`User enabled = Off`) requires the toggle. A brute-force temporary lockout (`User enabled` stays `On`, login shows "temporarily disabled") requires **Unlock users**. In production, confirm which state the account is actually in before choosing your control.
 
 </details>
 
