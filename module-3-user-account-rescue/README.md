@@ -34,12 +34,12 @@ The sandbox also has the realm-level **Verify email** flag enabled (Realm settin
 
 ### Brute-force protection
 
-The sandbox realm has brute-force protection enabled with a low `failureFactor` (10 failures). Two effects:
+The sandbox realm has brute-force protection enabled with a low `failureFactor` (10 failures, vs. Keycloak's default of 30). Two effects worth knowing:
 
-1. After 10 failed logins, the account enters *Temporarily disabled* state.
-2. There is an **Unlock users** button on the realm-wide brute-force settings page that clears all locked users at once.
+1. After 10 failed logins, the account enters a *temporary lockout*. The user's **User enabled** toggle stays `On` — the lockout is tracked in the attack-detection store, not on the user record itself (`GET /admin/realms/{realm}/attack-detection/brute-force/users/{userId}` is the authoritative check).
+2. The **Unlock users** button at **Realm settings → Security defenses → Brute force detection** clears every locked user in the realm at once. A single user can also be unlocked via the admin REST API: `DELETE /admin/realms/{realm}/attack-detection/brute-force/users/{userId}` (or the equivalent `kcadm.sh` call).
 
-> **Note:** Brute-force protection is realm-wide, not per-user. Be aware that hitting "Unlock users" unlocks every locked account in the realm, not just the one you came for.
+> **Note:** The brute-force *policy* (failureFactor, wait times, permanent-lockout threshold) is realm-wide, but lockout *state* is per-user. Prefer the per-user REST/CLI unlock when you only need to release one account — the realm-wide **Unlock users** button releases every locked user, which can mask an in-progress attack against someone else.
 
 ---
 
