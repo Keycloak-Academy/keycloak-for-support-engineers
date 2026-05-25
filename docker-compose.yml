@@ -54,6 +54,8 @@ services:
     # on both sides keep OIDC token validation happy and remove the need for
     # host.docker.internal. Requires Docker Desktop 4.34+ on Windows/Mac.
     network_mode: host
+    ports:
+      - "3000:3000"   # documentation only; ignored under network_mode: host
     environment:
       KEYCLOAK_BASE_URL: http://localhost:8080
       APP_BASE_URL: http://localhost:3000
